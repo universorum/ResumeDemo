@@ -1,0 +1,150 @@
+@using ResumeDemo.Models
+@model ResumeDemo.Models.Resume
+
+<h1 xmlns="http://www.w3.org/1999/html">@ViewData["Title"]</h1>
+
+<h4>Resume</h4>
+<hr/>
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id"/>
+            <input type="hidden" asp-for="Version"/>
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control"/>
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="BirthDate" class="control-label"></label>
+                <input id="BirthDate" type="date" class="form-control" name="BirthDate" value="@Model?.BirthDate.ToString("yyyy-MM-dd")">
+                <span asp-validation-for="BirthDate" class="text-danger"></span>
+            </div>
+            <div class="card my-3" style="width: 18rem;">
+                <div class="card-header">
+                    <a id="add" href="#" onclick="add()">Add another</a>
+                </div>
+                <ul id="editor-list" class="list-group list-group-flush">
+                    @foreach (var experience in Model?.Experiences ?? ArraySegment<Experience>.Empty)
+                    {
+                        <li class="list-group-item">
+                            <input type="hidden" style="display: none" name="Id" value="@experience.Id"/>
+                            <input type="hidden" style="display: none" name="Version" value="@experience.Version"/>
+                            <div class="form-group">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">@Html.DisplayNameFor(_ => default(Experience)!.Company)</span>
+                                    <input type="text" class="form-control" name="Company" value="@experience.Company">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">@Html.DisplayNameFor(_ => default(Experience)!.Title)</span>
+                                    <input type="text" class="form-control" name="Title" value="@experience.Title">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">@Html.DisplayNameFor(_ => default(Experience)!.Start)</span>
+                                    <input type="date" class="form-control" name="Start" value="@experience.Start.ToString("yyyy-MM-dd")">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">@Html.DisplayNameFor(_ => default(Experience)!.End)</span>
+                                    <input type="date" class="form-control" name="End" value="@experience.End?.ToString("yyyy-MM-dd")">
+                                </div>
+                            </div>
+                        </li>
+                    }
+                </ul>
+                <span asp-validation-for="Experiences" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <a href="#" class="btn btn-primary" onclick="save()">Save</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+<template id="editor">
+    <li class="list-group-item my-3">
+        <div class="form-group">
+            <div class="input-group mb-3">
+                <span class="input-group-text">@Html.DisplayNameFor(_ => default(Experience)!.Company)</span>
+                <input type="text" class="form-control" name="Company">
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="input-group mb-3">
+                <span class="input-group-text">@Html.DisplayNameFor(_ => default(Experience)!.Title)</span>
+                <input type="text" class="form-control" name="Title">
+            </div>
+        </div>
+        <div class="form-grou input-group mb-3">
+            <span class="input-group-text">@Html.DisplayNameFor(_ => default(Experience)!.Start)</span>
+            <input type="date" class="form-control" name="Start">
+        </div>
+        <div class="form-grou input-group mb-3">
+            <span class="input-group-text">@Html.DisplayNameFor(_ => default(Experience)!.End)</span>
+            <input type="date" class="form-control" name="End">
+        </div>
+    </li>
+</template>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        function add()
+        {
+            const template = document.getElementById('editor');
+            const clone = template.content.cloneNode(true);
+            document.getElementById('editor-list').appendChild(clone);
+        }
+        
+        function save()
+        {
+            let obj = 
+            {
+                Id : parseId(document.querySelector('input[name=Id]')),
+                Name : document.querySelector('#Name').value,
+                BirthDate : document.querySelector('#BirthDate').value,
+                Version : parseVersion(document.querySelector('#Version')),
+                Experiences : [...document.querySelectorAll('#editor-list li')].map(x => (
+                    {
+                        Id : parseId(x.querySelector('input[name=Id]')),
+                        Company : x.querySelector('input[name=Company]').value, 
+                        Title : x.querySelector('input[name=Title]').value,
+                        Start : x.querySelector('input[name=Start]').value,
+                        End : x.querySelector('input[name=End]').value,
+                        Version : parseVersion(x.querySelector('input[name=Version]')),
+                    }))
+            };
+
+            fetch('@ViewData["endpoint"]', {  method: '@ViewData["method"]', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) })
+                .then(_ => window.location.href = '../')
+                .catch(x => { 
+                    console.log(x);
+                });
+        }
+        
+        function parseId(dom)
+        {
+            if (dom === null) { return; }
+
+            return parseInt(dom.value);
+        }
+        
+        function parseVersion(dom)
+        {
+            if (dom === null) { return; }
+            
+            let value = dom.value;
+            if (typeof value === 'string' && value.length > 0) { return value; }
+        }
+    </script>
+}

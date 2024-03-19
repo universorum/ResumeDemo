@@ -1,0 +1,130 @@
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@using ResumeDemo.Models
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+
+<div class="input-group mb-3">
+    <span class="input-group-text">姓名</span>
+    <input type="text" id="search-name" class="form-control">
+</div>
+<div class="input-group mb-3">
+    <span class="input-group-text">職稱</span>
+    <input type="text" id="search-title" class="form-control">
+</div>
+
+<a href="#" class="btn btn-primary" onclick="load()">搜尋</a>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>
+            @Html.DisplayNameFor(_ => default(Resume)!.Name)
+        </th>
+        <th>
+            @Html.DisplayNameFor(_ => default(Resume)!.BirthDate)
+        </th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody class="list">
+    </tbody>
+</table>
+<div>
+    <nav aria-label="Page navigation example">
+        <ul class="pagination">
+            <div id="previous">
+                <div>Previous</div>
+            </div>
+            <div> | </div>
+            <div id="next">
+                <div>Next</div>
+            </div>
+        </ul>
+    </nav>
+</div>
+
+<template>
+    <tr class="item">
+        <td class="id" style="display: none"></td>
+        <td class="name"></td>
+        <td class="birthDate">
+        </td>
+        <td>
+            <a class="edit">Edit</a> |
+            <a class="detail">Details</a> |
+            <a class="delete">Delete</a>
+        </td>
+    </tr>
+</template>
+
+@section Scripts {
+
+    <script>
+        function getSearchString() {
+            return `/api/resume?name=${document.querySelector('#search-name').value}&title=${document.querySelector('#search-title').value}`;
+        }
+        
+        function load() {
+            display(getSearchString(), displayNext)
+        }
+
+        function previous() {
+            displayNext(true);
+            display(`${getSearchString()}&before=${document.querySelector('.list tr:nth-child(1) .id').textContent}`, displayPrevious);
+        }
+        function next() {
+            displayPrevious(true);
+            display(`${getSearchString()}&after=${document.querySelector('.list tr:nth-last-child(1) .id').textContent}`, displayNext);
+        }
+        
+        function display(url, callback) {
+            const template = document.querySelector('template');
+            const tbody = document.querySelector('tbody');
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    tbody.innerHTML = '';
+                    data.result.forEach(item => {
+                        const clone = template.content.cloneNode(true);
+                        clone.querySelector('.id').textContent = item.id;
+                        clone.querySelector('.name').textContent = item.name;
+                        clone.querySelector('.birthDate').textContent = item.birthDate;
+                        clone.querySelector('.edit').href = `/Resumes/Edit/${item.id}`;
+                        clone.querySelector('.detail').href = `/Resumes/Details/${item.id}`;
+                        clone.querySelector('.delete').href = `/Resumes/Delete/${item.id}`;
+                        tbody.appendChild(clone);
+                    });
+
+                    callback(data.hasNext);
+                });
+        }
+
+        function displayNext(enable) {
+            if (enable) {
+                document.querySelector('#next').innerHTML = '<a href="#" onclick="next()">Next</a>';
+            } else {
+                document.querySelector('#next').innerHTML = '<div>Next</div>';
+            }
+        }
+
+        function displayPrevious(enable) {
+            if (enable) {
+                document.querySelector('#previous').innerHTML = '<a href="#" onclick="previous()">Previous</a>';
+            } else {
+                document.querySelector('#previous').innerHTML = '<div>Previous</div>';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', load, false);
+    
+    
+    </script>
+
+}
